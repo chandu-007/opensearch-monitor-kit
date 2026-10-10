@@ -12,6 +12,6 @@ Status: `[ ]` open, `[x]` accepted. Each task references docs/SPEC.md; workers u
 
 5. [x] **Agent + Grafana MCP** (light). `agents/opensearch-monitor.md` per SPEC; `.mcp.json` per SPEC "Grafana / Vector". Depends on 4.
 
-6. [ ] **Status band mod** (careful). SPEC "Status band mod" + Appendix C, using the plugin-authoring API (types file path given in brief). `*.test.ts` covering the listed cases; `claude plugin validate` + `claude plugin test`. Depends on 1, 2.
+6. [x] **Status band mod** (careful). SPEC "Status band mod" + Appendix C, using the plugin-authoring API (types file path given in brief). `*.test.ts` covering the listed cases; `claude plugin validate` + `claude plugin test`. Depends on 1, 2.
 
 7. [ ] **Docs + scrub** (medium). Root README (what it is, install, config per OS, read-only guarantee + its limits: guard covers Bash only and only named hosts; band is early-access), plugin READMEs, `tests/scrub.sh` per SPEC DoD; run scrub, validate, tests; report results. Depends on 2–6.
