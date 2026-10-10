@@ -21,7 +21,8 @@
 - `plugins/opensearch-monitor/skills/opensearch-health/reference/ism-templates.md` — ISM explain and retries, policy/template sprawl, mapping field counts
 - `plugins/opensearch-monitor/skills/opensearch-health/reference/vector-grafana.md` — Vector PromQL (Grafana MCP, optional) and joint UTC timeline
 - `plugins/opensearch-monitor/skills/opensearch-health/reference/audit-checklist.md` — full audit checklist with severity rubric and CHANGE-step remediation
-- `plugins/opensearch-monitor/agents/opensearch-monitor.md` — monitoring agent (stub)
+- `plugins/opensearch-monitor/agents/opensearch-monitor.md` — read-only monitoring agent (sonnet): loads opensearch-health skill, read-only rules, 7-part report
+- `plugins/opensearch-monitor/.mcp.json` — optional Grafana MCP server (`mcp-grafana`, URL/token from env)
 - `plugins/opensearch-monitor/tests/` — plugin tests
 - `plugins/opensearch-monitor/tests/guard_test.py` — unittest suite running guard.py as a subprocess (allow/deny/fail-closed cases)
 - `plugins/opensearch-monitor/tests/run.sh` — runs every `*_test.sh` (bash) and `*_test.py` (python3), PASS/FAIL per file

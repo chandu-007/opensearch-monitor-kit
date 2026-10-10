@@ -10,7 +10,7 @@ Status: `[ ]` open, `[x]` accepted. Each task references docs/SPEC.md; workers u
 
 4. [x] **Runbook skill** (medium). Write SKILL.md and `reference/*.md` from SPEC Appendix A and B. Generic examples only (SPEC constraint 1). Depends on 2 (script interface).
 
-5. [ ] **Agent + Grafana MCP** (light). `agents/opensearch-monitor.md` per SPEC; `.mcp.json` per SPEC "Grafana / Vector". Depends on 4.
+5. [x] **Agent + Grafana MCP** (light). `agents/opensearch-monitor.md` per SPEC; `.mcp.json` per SPEC "Grafana / Vector". Depends on 4.
 
 6. [ ] **Status band mod** (careful). SPEC "Status band mod" + Appendix C, using the plugin-authoring API (types file path given in brief). `*.test.ts` covering the listed cases; `claude plugin validate` + `claude plugin test`. Depends on 1, 2.
 
