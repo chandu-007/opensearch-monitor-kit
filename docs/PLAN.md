@@ -14,4 +14,4 @@ Status: `[ ]` open, `[x]` accepted. Each task references docs/SPEC.md; workers u
 
 6. [x] **Status band mod** (careful). SPEC "Status band mod" + Appendix C, using the plugin-authoring API (types file path given in brief). `*.test.ts` covering the listed cases; `claude plugin validate` + `claude plugin test`. Depends on 1, 2.
 
-7. [ ] **Docs + scrub** (medium). Root README (what it is, install, config per OS, read-only guarantee + its limits: guard covers Bash only and only named hosts; band is early-access), plugin READMEs, `tests/scrub.sh` per SPEC DoD; run scrub, validate, tests; report results. Depends on 2–6.
+7. [x] **Docs + scrub** (medium). Root README (what it is, install, config per OS, read-only guarantee + its limits: guard covers Bash only and only named hosts; band is early-access), plugin READMEs, `tests/scrub.sh` per SPEC DoD; run scrub, validate, tests; report results. Depends on 2–6.

@@ -7,8 +7,11 @@
 - `.claude-plugin/marketplace.json` — catalog of the two plugins (task 1)
 - `plugins/opensearch-monitor/` — classic plugin: skill, agent, osget, guard, Grafana MCP (tasks 1–5)
 - `plugins/opensearch-monitor-band/` — status band mod (task 6)
-- `tests/scrub.sh` — repo-wide check for internal data (task 7)
+- `tests/scrub.sh` — repo-wide scan (tracked + untracked non-ignored) for non-doc IPv4, non-example emails, 12-digit numbers, PEM headers, `password=` values; `--extra <file>` private terms
 - `LICENSE` — MIT license
+- `README.md` — public README: install, configure (env, Keychain/password file, read-only role), usage, read-only guarantee and limits, Grafana, band, development
+- `plugins/opensearch-monitor/README.md` — short plugin README: what it adds, link to root README
+- `plugins/opensearch-monitor-band/README.md` — short band README: what it adds, settings, link to root README
 - `plugins/opensearch-monitor/.claude-plugin/plugin.json` — classic plugin manifest
 - `plugins/opensearch-monitor/hooks/hooks.json` — PreToolUse Bash hook wiring guard.py
 - `plugins/opensearch-monitor/hooks/guard.py` — PreToolUse Bash guard: blocks non-GET/credentialed HTTP to OSMON_URL / OSMON_GUARD_HOSTS hosts (python3 stdlib)
@@ -29,5 +32,6 @@
 - `plugins/opensearch-monitor/tests/osget_test.sh` — osget tests with stub `curl`/`security` on PATH
 - `plugins/opensearch-monitor-band/.claude-plugin/plugin.json` — band mod manifest with userConfig
 - `plugins/opensearch-monitor-band/hooks/hooks.json` — function-hook module list
-- `plugins/opensearch-monitor-band/hooks/register.tsx` — band register entry (stub, task 6)
-- `plugins/opensearch-monitor-band/types/index.d.ts` — band state types (stub, task 6)
+- `plugins/opensearch-monitor-band/hooks/register.tsx` — band mod: `/osmon-band` toggle, osget polling on `$.clock.every`, AbovePrompt health line (Appendix C)
+- `plugins/opensearch-monitor-band/hooks/band.test.ts` — `claude plugin test` suite: green/yellow/red, thresholds, unreachable, show_when_green, not configured, toggle, interval clamp
+- `plugins/opensearch-monitor-band/types/index.d.ts` — band state contract (`PluginState['opensearch-monitor-band']`, `BandSnapshot`)
