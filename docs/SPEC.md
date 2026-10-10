@@ -73,7 +73,9 @@ Password lookup order: `OSMON_PASSWORD_FILE` → macOS Keychain → `OSMON_PASSW
 - Reads the hook JSON from stdin, inspects `tool_input.command`.
 - Deny (exit 2, reason on stderr) when the command targets the cluster host (`OSMON_URL` host, or any host the user listed in `OSMON_GUARD_HOSTS`, comma-separated) **and** any of: `-X`/`--request` with a method other than GET/HEAD; `-d`/`--data*`/`-F`/`--form`/`-T`/`--upload-file`/`--json` (curl defaults to POST with these); `wget --post-*`/`--method`; `http(ie)` with a non-GET method; `python`/`node` one-liners containing `requests.(post|put|delete|patch)` or `method: "(POST|PUT|DELETE|PATCH)"`.
 - Deny any direct `curl`/`wget`/`http` to the host that passes credentials on the command line (`-u`, `--user`, `Authorization:` header), with a message pointing to `osget`.
+- A reference to `$OSMON_URL` / `${OSMON_URL}` (or `$OSMON_GUARD_HOSTS`) counts as naming the host, whether or not the variable is set in the guard's environment.
 - Allow everything else, including all `osget` calls (osget is GET-only by construction).
+- Known limits (documented in README, not handled): script files (`python3 x.py`), other clients (nc, openssl, perl, aws CLI), commands run on remote nodes over ssh, header values read from files.
 - Fail closed only for commands naming the host: if parsing fails and the command contains the host, deny. Commands not naming the host are always allowed.
 - No network, no file writes. Runs < 100 ms.
 
