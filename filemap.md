@@ -11,12 +11,21 @@
 - `LICENSE` — MIT license
 - `plugins/opensearch-monitor/.claude-plugin/plugin.json` — classic plugin manifest
 - `plugins/opensearch-monitor/hooks/hooks.json` — PreToolUse Bash hook wiring guard.py
-- `plugins/opensearch-monitor/hooks/guard.py` — Bash guard hook (stub, task 3)
-- `plugins/opensearch-monitor/skills/opensearch-health/SKILL.md` — health triage skill (stub)
-- `plugins/opensearch-monitor/skills/opensearch-health/scripts/osget` — GET-only cluster client (stub)
+- `plugins/opensearch-monitor/hooks/guard.py` — PreToolUse Bash guard: blocks non-GET/credentialed HTTP to OSMON_URL / OSMON_GUARD_HOSTS hosts (python3 stdlib)
+- `plugins/opensearch-monitor/skills/opensearch-health/SKILL.md` — runbook skill: read-only rules, setup check, triage ladder, interpretation, report format
+- `plugins/opensearch-monitor/skills/opensearch-health/scripts/osget` — GET-only cluster client (bash 3.2+, creds via `curl -K -` stdin)
 - `plugins/opensearch-monitor/skills/opensearch-health/reference/` — runbook reference docs
+- `plugins/opensearch-monitor/skills/opensearch-health/reference/cluster-triage.md` — triage steps 1–7 in depth, two-sample rate scripts, recovery and allocation
+- `plugins/opensearch-monitor/skills/opensearch-health/reference/security-analytics.md` — detector → workflow → monitor chain, findings counts, rule-index bloat, error classes
+- `plugins/opensearch-monitor/skills/opensearch-health/reference/alerting-notifications.md` — query-level monitors, alerts by state, notification channels, webhook and Mustache errors
+- `plugins/opensearch-monitor/skills/opensearch-health/reference/ism-templates.md` — ISM explain and retries, policy/template sprawl, mapping field counts
+- `plugins/opensearch-monitor/skills/opensearch-health/reference/vector-grafana.md` — Vector PromQL (Grafana MCP, optional) and joint UTC timeline
+- `plugins/opensearch-monitor/skills/opensearch-health/reference/audit-checklist.md` — full audit checklist with severity rubric and CHANGE-step remediation
 - `plugins/opensearch-monitor/agents/opensearch-monitor.md` — monitoring agent (stub)
 - `plugins/opensearch-monitor/tests/` — plugin tests
+- `plugins/opensearch-monitor/tests/guard_test.py` — unittest suite running guard.py as a subprocess (allow/deny/fail-closed cases)
+- `plugins/opensearch-monitor/tests/run.sh` — runs every `*_test.sh` (bash) and `*_test.py` (python3), PASS/FAIL per file
+- `plugins/opensearch-monitor/tests/osget_test.sh` — osget tests with stub `curl`/`security` on PATH
 - `plugins/opensearch-monitor-band/.claude-plugin/plugin.json` — band mod manifest with userConfig
 - `plugins/opensearch-monitor-band/hooks/hooks.json` — function-hook module list
 - `plugins/opensearch-monitor-band/hooks/register.tsx` — band register entry (stub, task 6)

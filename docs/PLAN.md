@@ -8,7 +8,7 @@ Status: `[ ]` open, `[x]` accepted. Each task references docs/SPEC.md; workers u
 
 3. [x] **Guard hook + tests** (careful). Implement SPEC "Guard hook" in `hooks/guard.py` (python3 stdlib only). Tests in `tests/guard_test.py` (run from `tests/run.sh`) feeding hook JSON: allow osget, allow unrelated curl, allow plain GET curl to host without credentials, deny curl to host with `-u`/`--user`/`Authorization:` (creds on argv), deny -X POST/PUT/DELETE, deny -d/--data/--json/-F/-T without -X, deny `--request=DELETE`, deny wget --post-data, deny httpie `http PUT host`, deny python requests.post to host, allow commands not naming host, host from OSMON_URL and OSMON_GUARD_HOSTS, malformed JSON naming host → deny. Exit 2 + stderr reason on deny. Depends on 1.
 
-4. [ ] **Runbook skill** (medium). Write SKILL.md and `reference/*.md` from SPEC Appendix A and B. Generic examples only (SPEC constraint 1). Depends on 2 (script interface).
+4. [x] **Runbook skill** (medium). Write SKILL.md and `reference/*.md` from SPEC Appendix A and B. Generic examples only (SPEC constraint 1). Depends on 2 (script interface).
 
 5. [ ] **Agent + Grafana MCP** (light). `agents/opensearch-monitor.md` per SPEC; `.mcp.json` per SPEC "Grafana / Vector". Depends on 4.
 
