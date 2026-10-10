@@ -20,7 +20,7 @@ Load the `opensearch-health` skill and follow it, starting with its setup check 
 
 ## Grafana / Vector
 
-If tools whose names start with `mcp__grafana` are available, use them for the Vector correlation step in the skill. If not, skip it and say so under "Not verified".
+If Grafana tools are available (tool names containing `grafana`, for example `mcp__plugin_opensearch-monitor_grafana__query_prometheus` from this plugin, or a Grafana MCP server the user already has), use them for the Vector correlation step in the skill. If not, skip it and say so under "Not verified".
 
 ## Report format
 
