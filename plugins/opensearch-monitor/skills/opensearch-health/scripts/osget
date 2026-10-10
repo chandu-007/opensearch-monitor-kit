@@ -1,3 +1,342 @@
 #!/usr/bin/env bash
-echo "osget: not implemented yet" >&2
-exit 2
+# osget: GET-only OpenSearch client (see docs/SPEC.md "osget").
+#
+# Usage:
+#   osget <path> [--body <json> | --body-file <file>] [--raw]
+#   osget --check
+#   osget --help
+#
+# Exit codes: 0 ok; 2 usage; 3 config/credentials; 4 HTTP error (body still
+# printed); 5 network/timeout or any other curl failure.
+#
+# Design notes:
+# - The method is hard-coded: curl always gets `-X GET`. No flag, argument or
+#   environment variable is consulted for the method. `-q` is curl's first
+#   argument so ~/.curlrc / CURL_HOME cannot inject options (e.g. -X POST, -d).
+# - Credentials go to curl only on stdin (`-K -`) through a pipe from the
+#   `printf` builtin: never argv, never a file (no here-strings/heredocs, which
+#   bash < 5.1 backs with temp files), never curl's environment
+#   (OSMON_PASSWORD is unset after it is read, and curl runs under
+#   `env -u OSMON_PASSWORD`). Internal variables holding the secret are unset
+#   at start-up so they cannot inherit export status from the caller.
+# - HTTP status handling (deliberate deviation from SPEC's `--fail-with-body`,
+#   which needs curl >= 7.76): curl writes the body to a private temp file
+#   (`-o`) and prints only the status code (`-w '%{http_code}'`).
+#   curl exit 0 and status >= 400 -> body printed to stdout, exit 4.
+#   curl exit 0 and status 300-399 -> redirects are never followed (no `-L`):
+#   body printed, "redirect not followed (Location: ...)" on stderr, exit 4.
+#   Any non-zero curl exit -> exit 5 (DNS, connect, TLS, timeout, ...).
+#   This behaves the same on every curl version.
+# - OSMON_URL must not carry userinfo (`user:pass@host`): that would put a
+#   secret on curl's argv and in --check output, so it is rejected (exit 3).
+# - Temp files live in a mktemp -d directory (mode 700, files mode 600) that a
+#   trap removes on exit. Only the --body text, the response headers (`-D`)
+#   and the response body are written there; never credentials.
+
+LC_ALL=C
+umask 077
+
+# Internal variables must never inherit export status from the caller.
+unset _og_pw _og_pw_src _og_env_pw _og_cfg _og_user _og_url _og_auth _og_tmp _esc _in _out _ch
+
+prog=osget
+
+usage() {
+  cat <<'EOF'
+Usage:
+  osget <path> [--body <json> | --body-file <file>] [--raw]
+  osget --check
+  osget --help
+
+Sends a read-only GET to $OSMON_URL/<path>. <path> is relative (a leading "/"
+is stripped), e.g. "_cluster/health" or "_cat/nodes?v". --body/--body-file
+send a JSON body with the GET (e.g. _plugins/_alerting/monitors/_search).
+--raw omits the "Accept: application/json" header (for text _cat output).
+
+Environment: OSMON_URL, OSMON_USER (required); OSMON_PASSWORD_FILE,
+OSMON_KEYCHAIN_SERVICE (default osmon), OSMON_PASSWORD (least preferred);
+OSMON_INSECURE=1 (skip TLS verification); OSMON_TIMEOUT (seconds, default 60).
+
+Exit codes: 0 ok, 2 usage, 3 config/credentials, 4 HTTP error, 5 network.
+EOF
+}
+
+die() { # die <code> <message...>
+  _c=$1; shift
+  printf '%s: %s\n' "$prog" "$*" >&2
+  exit "$_c"
+}
+
+# ---------------------------------------------------------------- arguments
+mode=get
+path=
+have_path=0
+body=
+have_body=0
+body_file=
+have_body_file=0
+raw=0
+
+if [ $# -eq 0 ]; then
+  usage >&2
+  exit 2
+fi
+
+while [ $# -gt 0 ]; do
+  case $1 in
+    --help|-h)
+      usage
+      exit 0 ;;
+    --check)
+      mode=check ;;
+    --raw)
+      raw=1 ;;
+    --body)
+      [ $# -ge 2 ] || die 2 "--body needs a value"
+      body=$2; have_body=1; shift ;;
+    --body=*)
+      body=${1#--body=}; have_body=1 ;;
+    --body-file)
+      [ $# -ge 2 ] || die 2 "--body-file needs a value"
+      body_file=$2; have_body_file=1; shift ;;
+    --body-file=*)
+      body_file=${1#--body-file=}; have_body_file=1 ;;
+    -*)
+      die 2 "unknown option: $1 (see osget --help)" ;;
+    *)
+      [ "$have_path" -eq 0 ] || die 2 "only one path allowed (see osget --help)"
+      path=$1; have_path=1 ;;
+  esac
+  shift
+done
+
+if [ "$have_body" -eq 1 ] && [ "$have_body_file" -eq 1 ]; then
+  die 2 "use either --body or --body-file, not both"
+fi
+
+if [ "$mode" = check ]; then
+  if [ "$have_path" -eq 1 ] || [ "$have_body" -eq 1 ] || [ "$have_body_file" -eq 1 ] || [ "$raw" -eq 1 ]; then
+    die 2 "--check takes no other arguments"
+  fi
+  path=
+else
+  [ "$have_path" -eq 1 ] || die 2 "missing <path> (see osget --help)"
+fi
+
+# Path validation (checked on the raw argument and after stripping one "/").
+case $path in
+  //*) die 2 "path must be relative, not a URL" ;;
+esac
+path=${path#/}
+case $path in
+  [Hh][Tt][Tt][Pp]:*|[Hh][Tt][Tt][Pp][Ss]:*|/*)
+    die 2 "path must be relative, not a URL" ;;
+  *..*)
+    die 2 "path must not contain '..'" ;;
+  *[[:space:][:cntrl:]]*)
+    die 2 "path must not contain whitespace or control characters" ;;
+esac
+
+if [ "$have_body_file" -eq 1 ]; then
+  if [ "$body_file" = - ] || [ ! -f "$body_file" ] || [ ! -r "$body_file" ]; then
+    die 2 "--body-file must be a readable regular file: $body_file"
+  fi
+fi
+
+# ------------------------------------------------------------- configuration
+_og_url=${OSMON_URL-}
+case $_og_url in
+  https://?*|http://?*) ;;
+  '') die 3 "OSMON_URL is not set (e.g. https://opensearch.example.com)" ;;
+  *) die 3 "OSMON_URL must start with https:// or http://" ;;
+esac
+case $_og_url in
+  *[[:space:][:cntrl:]]*) die 3 "OSMON_URL must not contain whitespace or control characters" ;;
+esac
+# Reject userinfo: any "@" in the authority (between "://" and the first
+# "/", "?" or "#"). The URL itself is never echoed here: it may hold a secret.
+_og_auth=${_og_url#*://}
+_og_auth=${_og_auth%%[/?#]*}
+case $_og_auth in
+  *@*)
+    _og_auth=
+    die 3 "OSMON_URL must not contain credentials (user@ or user:password@). Put the user in OSMON_USER and the password in the macOS Keychain or a chmod 600 file named by OSMON_PASSWORD_FILE." ;;
+esac
+_og_auth=
+_og_url=${_og_url%/}
+
+_og_user=${OSMON_USER-}
+[ -n "$_og_user" ] || die 3 "OSMON_USER is not set"
+case $_og_user in
+  *:*) die 3 "OSMON_USER must not contain ':'" ;;
+  *[[:cntrl:]]*) die 3 "OSMON_USER must not contain control characters" ;;
+esac
+
+timeout=${OSMON_TIMEOUT:-60}
+case $timeout in
+  ''|*[!0-9]*|0) die 3 "OSMON_TIMEOUT must be a positive integer (seconds)" ;;
+esac
+
+command -v curl >/dev/null 2>&1 || die 3 "curl not found on PATH"
+
+keychain_service=${OSMON_KEYCHAIN_SERVICE:-osmon}
+
+file_mode() { # octal permission bits of $1, following symlinks (GNU stat, then BSD)
+  stat -L -c %a "$1" 2>/dev/null || stat -L -f %Lp "$1" 2>/dev/null
+}
+
+# Password lookup: file -> macOS Keychain -> OSMON_PASSWORD env.
+_og_pw=
+_og_pw_src=
+_og_env_pw=${OSMON_PASSWORD-}
+unset OSMON_PASSWORD
+
+if [ -n "${OSMON_PASSWORD_FILE-}" ]; then
+  pwf=$OSMON_PASSWORD_FILE
+  [ -f "$pwf" ] || die 3 "OSMON_PASSWORD_FILE does not exist or is not a regular file: $pwf"
+  [ -r "$pwf" ] || die 3 "OSMON_PASSWORD_FILE is not readable: $pwf"
+  pmode=$(file_mode "$pwf")
+  case $pmode in
+    600|400) ;;
+    *) die 3 "OSMON_PASSWORD_FILE has mode ${pmode:-unknown}; it must be 600 or 400. Fix: chmod 600 $pwf" ;;
+  esac
+  IFS= read -r -d '' _og_pw < "$pwf"
+  _og_pw=${_og_pw%$'\n'}
+  [ -n "$_og_pw" ] || die 3 "OSMON_PASSWORD_FILE is empty: $pwf"
+  _og_pw_src=file
+fi
+
+if [ -z "$_og_pw_src" ] && command -v security >/dev/null 2>&1; then
+  if _og_pw=$(security find-generic-password -a "$_og_user" -s "$keychain_service" -w 2>/dev/null) && [ -n "$_og_pw" ]; then
+    _og_pw_src=keychain
+  else
+    _og_pw=
+  fi
+fi
+
+if [ -z "$_og_pw_src" ] && [ -n "$_og_env_pw" ]; then
+  _og_pw=$_og_env_pw
+  _og_pw_src=env
+fi
+_og_env_pw=
+
+if [ -z "$_og_pw_src" ]; then
+  {
+    printf '%s: no password found for user %s.\n' "$prog" "$_og_user"
+    printf 'Set one up with either:\n'
+    printf '  macOS Keychain:  security add-generic-password -a %s -s %s -w\n' "$_og_user" "$keychain_service"
+    printf '                   (prompts for the password)\n'
+    printf '  password file:   put only the password in a file, run chmod 600 <file>,\n'
+    printf '                   and set OSMON_PASSWORD_FILE=<file>\n'
+  } >&2
+  exit 3
+fi
+
+# Escape for curl config quoted-string syntax. Char-by-char so behaviour does
+# not depend on bash-version differences in ${var//pat/rep}. Result in $_esc.
+cfg_escape() {
+  _in=$1 _out= _i=0 _n=${#1}
+  while [ "$_i" -lt "$_n" ]; do
+    _ch=${_in:$_i:1}
+    case $_ch in
+      \\) _out="$_out\\\\" ;;
+      \") _out="$_out\\\"" ;;
+      $'\n') _out="$_out\\n" ;;
+      $'\r') _out="$_out\\r" ;;
+      *) _out="$_out$_ch" ;;
+    esac
+    _i=$((_i + 1))
+  done
+  _esc=$_out
+  _in= _out= _ch=
+}
+
+cfg_escape "$_og_user"
+_og_cfg="user = \"$_esc"
+cfg_escape "$_og_pw"
+_og_cfg="$_og_cfg:$_esc\""
+_esc=
+_og_pw=
+
+if [ "$mode" = check ]; then
+  printf 'config: url=%s user=%s password-source=%s\n' "$_og_url" "$_og_user" "$_og_pw_src"
+fi
+
+# ------------------------------------------------------------------ request
+_og_tmp=$(mktemp -d "${TMPDIR:-/tmp}/osget.XXXXXX") || die 5 "cannot create temp directory"
+trap 'rm -rf "$_og_tmp"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+chmod 700 "$_og_tmp"
+
+resp=$_og_tmp/response
+hdrs=$_og_tmp/headers
+: > "$resp"
+: > "$hdrs"
+
+url="$_og_url/$path"
+
+# Method is fixed here and nowhere else. -q must stay the first argument.
+args=(-q -sS -X GET --max-time "$timeout" -K - -o "$resp" -D "$hdrs" -w '%{http_code}')
+if [ "${OSMON_INSECURE-}" = 1 ]; then
+  args+=(-k)
+fi
+if [ "$raw" -eq 0 ]; then
+  args+=(-H 'Accept: application/json')
+fi
+if [ "$have_body" -eq 1 ]; then
+  reqbody=$_og_tmp/body.json
+  printf '%s' "$body" > "$reqbody"
+  chmod 600 "$reqbody"
+  args+=(-H 'Content-Type: application/json' --data-binary "@$reqbody")
+elif [ "$have_body_file" -eq 1 ]; then
+  args+=(-H 'Content-Type: application/json' --data-binary "@$body_file")
+fi
+args+=("$url")
+
+status=$(printf '%s\n' "$_og_cfg" | env -u OSMON_PASSWORD curl "${args[@]}")
+rc=$?
+_og_cfg=
+
+if [ "$rc" -ne 0 ]; then
+  die 5 "request failed (curl exit $rc) for GET /$path"
+fi
+
+case $status in
+  [0-9][0-9][0-9]) ;;
+  *) die 5 "no HTTP status from curl for GET /$path" ;;
+esac
+
+if [ "$status" -ge 400 ]; then
+  cat "$resp"
+  printf '%s: HTTP %s for GET /%s\n' "$prog" "$status" "$path" >&2
+  exit 4
+fi
+
+if [ "$status" -ge 300 ]; then
+  cat "$resp"
+  # Last Location header (the file may hold several header blocks).
+  location=$(grep -i '^location:' "$hdrs" | tail -n 1 | sed 's/^[Ll][Oo][Cc][Aa][Tt][Ii][Oo][Nn]:[[:space:]]*//' | tr -d '\r')
+  printf '%s: HTTP %s for GET /%s: redirect not followed (Location: %s)\n' \
+    "$prog" "$status" "$path" "${location:-not provided}" >&2
+  exit 4
+fi
+
+if [ "$mode" = check ]; then
+  if command -v python3 >/dev/null 2>&1 && python3 -c '
+import json, sys
+with open(sys.argv[1]) as f:
+    d = json.load(f)
+print("cluster_name=%s" % d.get("cluster_name", "?"))
+print("version=%s" % (d.get("version") or {}).get("number", "?"))
+' "$resp" 2>/dev/null; then
+    :
+  else
+    cat "$resp"
+    echo
+  fi
+  exit 0
+fi
+
+cat "$resp"
+exit 0
