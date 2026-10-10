@@ -1,0 +1,15 @@
+{
+  "name": "opensearch-monitor-band",
+  "version": "0.1.0",
+  "description": "Live OpenSearch health band above the prompt (early-access function hooks).",
+  "author": { "name": "your-github-user" },
+  "homepage": "https://github.com/your-github-user/opensearch-monitor-kit",
+  "repository": "https://github.com/your-github-user/opensearch-monitor-kit",
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "osget_path": { "type": "string", "title": "osget path", "description": "Absolute path to the osget script from the opensearch-monitor plugin", "default": "" },
+    "interval_seconds": { "type": "number", "title": "Refresh interval (seconds)", "description": "How often the band polls the cluster; minimum 15", "default": 60 },
+    "show_when_green": { "type": "boolean", "title": "Show when green", "description": "Keep the band visible while the cluster is healthy", "default": true }
+  }
+}

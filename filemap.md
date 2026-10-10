@@ -8,3 +8,16 @@
 - `plugins/opensearch-monitor/` — classic plugin: skill, agent, osget, guard, Grafana MCP (tasks 1–5)
 - `plugins/opensearch-monitor-band/` — status band mod (task 6)
 - `tests/scrub.sh` — repo-wide check for internal data (task 7)
+- `LICENSE` — MIT license
+- `plugins/opensearch-monitor/.claude-plugin/plugin.json` — classic plugin manifest
+- `plugins/opensearch-monitor/hooks/hooks.json` — PreToolUse Bash hook wiring guard.py
+- `plugins/opensearch-monitor/hooks/guard.py` — Bash guard hook (stub, task 3)
+- `plugins/opensearch-monitor/skills/opensearch-health/SKILL.md` — health triage skill (stub)
+- `plugins/opensearch-monitor/skills/opensearch-health/scripts/osget` — GET-only cluster client (stub)
+- `plugins/opensearch-monitor/skills/opensearch-health/reference/` — runbook reference docs
+- `plugins/opensearch-monitor/agents/opensearch-monitor.md` — monitoring agent (stub)
+- `plugins/opensearch-monitor/tests/` — plugin tests
+- `plugins/opensearch-monitor-band/.claude-plugin/plugin.json` — band mod manifest with userConfig
+- `plugins/opensearch-monitor-band/hooks/hooks.json` — function-hook module list
+- `plugins/opensearch-monitor-band/hooks/register.tsx` — band register entry (stub, task 6)
+- `plugins/opensearch-monitor-band/types/index.d.ts` — band state types (stub, task 6)
