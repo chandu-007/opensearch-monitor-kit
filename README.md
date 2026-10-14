@@ -14,7 +14,7 @@ This repo is a Claude Code plugin marketplace with two plugins:
 In Claude Code:
 
 ```
-/plugin marketplace add your-github-user/opensearch-monitor-kit
+/plugin marketplace add chandu-007/opensearch-monitor-kit
 /plugin install opensearch-monitor@opensearch-monitor-kit
 /plugin install opensearch-monitor-band@opensearch-monitor-kit
 ```
@@ -24,7 +24,7 @@ The second install (the status band) is optional. Then restart Claude Code.
 By hand, without the marketplace:
 
 ```sh
-git clone https://github.com/your-github-user/opensearch-monitor-kit.git
+git clone https://github.com/chandu-007/opensearch-monitor-kit.git
 claude --plugin-dir opensearch-monitor-kit/plugins/opensearch-monitor
 ```
 

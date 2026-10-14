@@ -2,9 +2,9 @@
   "name": "opensearch-monitor",
   "version": "0.1.0",
   "description": "Read-only OpenSearch health triage, root cause and audits via a GET-only client and a guard hook.",
-  "author": { "name": "your-github-user" },
-  "homepage": "https://github.com/your-github-user/opensearch-monitor-kit",
-  "repository": "https://github.com/your-github-user/opensearch-monitor-kit",
+  "author": { "name": "chandu-007" },
+  "homepage": "https://github.com/chandu-007/opensearch-monitor-kit",
+  "repository": "https://github.com/chandu-007/opensearch-monitor-kit",
   "license": "MIT",
   "keywords": ["opensearch", "monitoring", "sre", "security-analytics"]
 }

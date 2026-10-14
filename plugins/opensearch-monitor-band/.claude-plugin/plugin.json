@@ -2,9 +2,9 @@
   "name": "opensearch-monitor-band",
   "version": "0.1.0",
   "description": "Live OpenSearch health band above the prompt (early-access function hooks).",
-  "author": { "name": "your-github-user" },
-  "homepage": "https://github.com/your-github-user/opensearch-monitor-kit",
-  "repository": "https://github.com/your-github-user/opensearch-monitor-kit",
+  "author": { "name": "chandu-007" },
+  "homepage": "https://github.com/chandu-007/opensearch-monitor-kit",
+  "repository": "https://github.com/chandu-007/opensearch-monitor-kit",
   "license": "MIT",
   "types": "./types/index.d.ts",
   "userConfig": {
